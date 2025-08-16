@@ -1,22 +1,51 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recipe Generator</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-<body>
-    <div class="container">
-        <h1>Recipe Generator</h1>
-        <div class="search-container">
-            <input type="text" id="searchInput" placeholder="Enter a recipe...">
-            <button id="searchBtn" onclick="searchRecipe()">Search</button>
-        </div>
-        
-        <div id="recipeContainer"></div>
-    </div>
+from aiogram import Bot, Dispatcher, types
+from aiogram.types import Message
+from aiogram.utils import executor
+import re
 
-    <script src="script.js"></script>
-</body>
-</html>
+# --- Replace this with your real Telegram Bot Token ---
+BOT_TOKEN = "8369154258:AAERZ86dOM_PhdFeRDkTREp2nY_SdEigDFA"
+
+# --- Initialize Bot and Dispatcher ---
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher(bot)
+
+# --- List of Domains You Want to Remove ---
+EXTERNAL_LINK_DOMAINS = [
+    "facebook.com", "instagram.com", "apple.com",
+    "google.com", "snapchat.com", "youtube.com", "twitter.com"
+]
+
+# --- Function to Detect External Links ---
+def detect_external_links(text):
+    urls = re.findall(r"https?://[\\w./\\-]+", text)
+    external_links = [url for url in urls if any(domain in url for domain in EXTERNAL_LINK_DOMAINS)]
+    return external_links
+
+# --- /start Command Handler ---
+@dp.message_handler(commands=["start"])
+async def handle_start(message: Message):
+    await message.answer(
+        "👋 Welcome to *Remove External Link Bot*!\n\n"
+        "Just send me your TikTok *bio*, and I’ll tell you if it contains any external links "
+        "(Google, Facebook, Apple, etc).",
+        parse_mode="Markdown"
+    )
+
+# --- Main Handler for Any Text Message ---
+@dp.message_handler()
+async def handle_text(message: Message):
+    text = message.text
+    links = detect_external_links(text)
+    if links:
+        await message.reply(
+            f"🚫 I found {len(links)} external link(s) in your bio:\n\n" +
+            "\n".join(links) +
+            "\n\n👉 Please remove them to keep your TikTok profile clean and secure."
+        )
+    else:
+        await message.reply("✅ No external links found! Your TikTok bio looks clean and secure. 🎉")
+
+# --- Run Bot ---
+if __name__ == '__main__':
+    executor.start_polling(dp, skip_updates=True)
